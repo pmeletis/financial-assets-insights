@@ -28,34 +28,37 @@ def download_and_save_data(dirpath: Path):
   hist.to_csv(dirpath / f'russel2000_daily_{current_date}.csv')
 
 
+def _get_most_recent(dirpath, prefix):
+  filepaths = dirpath.glob(f'{prefix}_*.csv')
+  dates = [fp.name[-12:-4] for fp in filepaths]
+  if dates:
+    most_recent_date = sorted(dates)[-1]
+    return dirpath / f'{prefix}_{most_recent_date}.csv'
+
+
 def get_latest_close_data(dirpath: Path = Path()):
   """Get data from local dir or download from online."""
   # TODO(panos): handle better
 
-  # format *_YYYYMMDD.csv
-  filepaths = dirpath.glob('*.csv')
-  dates = [fp.name[-12:-4] for fp in filepaths]
-  most_recent_date = sorted(dates)[-1]
   reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
 
-  filepath_sp = dirpath / f"s&p500_daily_{most_recent_date}.csv"
+  filepath_sp = _get_most_recent(dirpath, 's&p500_daily')
   url_sp = URL_ASSETS / '14212769/s.p500_daily_20240208.csv'
-  if filepath_sp.exists():
+  if filepath_sp is not None:
     sp500_daily = reader_fn(filepath_sp)
   else:
     sp500_daily = reader_fn(url_sp)
 
-  filepath_nc = dirpath / f"nasdaq_comp_daily_{most_recent_date}.csv"
+  filepath_nc = _get_most_recent(dirpath, 'nasdaq_comp_daily')
   url_nc = URL_ASSETS / '14212775/nasdaq_comp_daily_20240208.csv'
-  if filepath_nc.exists():
+  if filepath_nc is not None:
     nasdaq_comp_daily = reader_fn(filepath_nc)
   else:
     nasdaq_comp_daily = reader_fn(url_nc)
 
-
-  filepath_r2 = dirpath / f"russel2000_daily_{most_recent_date}.csv"
+  filepath_r2 = _get_most_recent(dirpath, 'russel2000_daily')
   url_r2 = URL_ASSETS / '14212780/russel2000_daily_20240208.csv'
-  if filepath_nc.exists():
+  if filepath_nc is not None:
     russel2000_daily = reader_fn(filepath_r2)
   else:
     russel2000_daily = reader_fn(url_r2)
@@ -70,6 +73,7 @@ def get_latest_close_data(dirpath: Path = Path()):
 
 
 def days_since_ath(signal: pd.Series, eps: Optional[float] = None):
+  # get rid of any NaNs in the beginning
   signal = signal[signal.first_valid_index():]
   assert not signal.isna().any()
   assert eps is None or (isinstance(eps, float) and eps >= 0.0)
@@ -83,5 +87,5 @@ def days_since_ath(signal: pd.Series, eps: Optional[float] = None):
       num_days_since_ath.append(0)
     else:
       num_days_since_ath.append(num_days_since_ath[-1] + 1)
-  num_days_since_ath = pd.Series(num_days_since_ath, index=signal.index)
+  num_days_since_ath = pd.Series(num_days_since_ath, index=signal.index, dtype=np.int32)
   return num_days_since_ath
