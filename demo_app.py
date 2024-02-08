@@ -1,23 +1,24 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-
-st.title('Insights of Financial Markets')
-
-st.subheader('Indices')
-
-# import numpy as np
-import matplotlib.pyplot as plt
-# import pandas as pd
-from typing import Optional
-# import yfinance as yf
 from datetime import date
-from pathlib import Path
 from functools import partial
+from pathlib import Path
+from typing import Optional
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+# import pandas as pd
+# import yfinance as yf
 # import mpld3
 # import streamlit.components.v1 as components
 
 DIRPATH_DATASET = Path.absolute(Path('.')) / 'datasets'
+
+
+st.title('Insights of Financial Markets')
+
+st.header('Indices')
 
 data_load_state = st.text('Loading data...')
 
