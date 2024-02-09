@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import streamlit as st
 
 
 URL_ASSETS = 'https://raw.githubusercontent.com/pmeletis/fai-dumps/main/'
@@ -36,6 +37,7 @@ def _get_most_recent(dirpath, prefix):
     return dirpath / f'{prefix}_{most_recent_date}.csv'
 
 
+@st.cache_data
 def get_latest_close_data(dirpath: Path = Path()):
   """Get data from local dir or download from online."""
   # TODO(panos): handle better
@@ -69,6 +71,7 @@ def get_latest_close_data(dirpath: Path = Path()):
                                           'RUSSEL2000': russel2000_daily['Close']})
   # delete latest day to be sure all indices have no-NaN value
   indices_all_daily_close = indices_all_daily_close[:-1]
+
   return indices_all_daily_close
 
 
