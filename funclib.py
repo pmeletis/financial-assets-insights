@@ -2,7 +2,7 @@ import glob
 import time
 from datetime import date
 from functools import partial
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Optional
 
 import matplotlib.patches as patches
@@ -12,7 +12,7 @@ import pandas as pd
 import yfinance as yf
 
 
-URL_ASSETS = Path('https://github.com/pmeletis/financial-assets-insights/files')
+URL_ASSETS = 'https://raw.githubusercontent.com/pmeletis/fai-dumps/main/'
 
 
 def download_and_save_data(dirpath: Path):
@@ -43,21 +43,21 @@ def get_latest_close_data(dirpath: Path = Path()):
   reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
 
   filepath_sp = _get_most_recent(dirpath, 's&p500_daily')
-  url_sp = URL_ASSETS / '14212769/s.p500_daily_20240208.csv'
+  url_sp = URL_ASSETS + 's%26p500_daily_20240208.csv'
   if filepath_sp is not None:
     sp500_daily = reader_fn(filepath_sp)
   else:
     sp500_daily = reader_fn(url_sp)
 
   filepath_nc = _get_most_recent(dirpath, 'nasdaq_comp_daily')
-  url_nc = URL_ASSETS / '14212775/nasdaq_comp_daily_20240208.csv'
+  url_nc = URL_ASSETS + 'nasdaq_comp_daily_20240208.csv'
   if filepath_nc is not None:
     nasdaq_comp_daily = reader_fn(filepath_nc)
   else:
     nasdaq_comp_daily = reader_fn(url_nc)
 
   filepath_r2 = _get_most_recent(dirpath, 'russel2000_daily')
-  url_r2 = URL_ASSETS / '14212780/russel2000_daily_20240208.csv'
+  url_r2 = URL_ASSETS + 'russel2000_daily_20240208.csv'
   if filepath_nc is not None:
     russel2000_daily = reader_fn(filepath_r2)
   else:
