@@ -1,17 +1,11 @@
-from datetime import date
-from functools import partial
 from pathlib import Path
-from typing import Optional
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import streamlit as st
-import plotly.graph_objs as go
+# import plotly.graph_objs as go
 import plotly.express as px
+import streamlit as st
 
 from funclib import days_since_ath, get_latest_close_data
-
 
 DIRPATH_DATASET = Path.absolute(Path('.')) / 'datasets'
 

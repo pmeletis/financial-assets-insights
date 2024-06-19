@@ -1,17 +1,15 @@
-import glob
 import time
 from datetime import date
 from functools import partial
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Optional
 
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
+# import matplotlib.patches as patches
+# import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import yfinance as yf
 import streamlit as st
-
+import yfinance as yf
 
 URL_ASSETS = 'https://raw.githubusercontent.com/pmeletis/fai-dumps/main/'
 
