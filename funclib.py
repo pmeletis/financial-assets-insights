@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import yfinance as yf
+from urllib.error import HTTPError
 
 URL_ASSETS = 'https://raw.githubusercontent.com/pmeletis/fai-dumps/main/'
 
@@ -36,6 +37,46 @@ def _get_most_recent(dirpath: Path, prefix):
   if dates:
     most_recent_date = sorted(dates)[-1]
     return dirpath / f'{prefix}_{most_recent_date}.csv'
+
+
+@st.cache_data
+def get_close_data_from_dumps(date_str: str = '20240208'):
+  reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
+
+  # TODO(panos): handle http error 404 not found
+
+  url_sp = URL_ASSETS + f's%26p500_daily_{date_str}.csv'
+  sp500_daily = reader_fn(url_sp)
+
+  url_nc = URL_ASSETS + f'nasdaq_comp_daily_{date_str}.csv'
+  nasdaq_comp_daily = reader_fn(url_nc)
+
+  url_r2 = URL_ASSETS + f'russel2000_daily_{date_str}.csv'
+  russel2000_daily = reader_fn(url_r2)
+
+  # aggregate data
+  indices_all_daily_close = pd.DataFrame({'S&P500': sp500_daily['Close'],
+                                          'NASDAQ Comp': nasdaq_comp_daily['Close'],
+                                          'RUSSEL2000': russel2000_daily['Close']})
+
+  # read BTC
+  url_btc = URL_ASSETS + f'btcusd_daily_{date_str}.csv'
+  try:
+    btcusd_daily = reader_fn(url_btc)
+  except HTTPError as e:
+    if e.code == 404:
+      print(f"Error 404: The requested URL {url_btc} was not found on the server.")
+    else:
+      print(f"HTTP Error: {e.code}")
+  except Exception as e:
+    print(f"Unknown error: {e.reason}")
+  else:
+    indices_all_daily_close['BTCUSD'] = btcusd_daily['Close']
+
+  # delete latest day to be sure all indices have no-NaN latest value
+  indices_all_daily_close = indices_all_daily_close[:-1]
+
+  return indices_all_daily_close
 
 
 @st.cache_data

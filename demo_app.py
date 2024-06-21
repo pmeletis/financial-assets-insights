@@ -5,9 +5,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from funclib import days_since_ath, get_latest_close_data
+from funclib import days_since_ath, get_close_data_from_dumps
 
-DIRPATH_DATASET = Path.absolute(Path('.')) / 'datasets'
+# DIRPATH_DATASET = Path.absolute(Path('.')) / 'datasets'
 
 
 st.title('Insights on Financial Markets')
@@ -18,7 +18,7 @@ You can find the source for this website at https://github.com/pmeletis/financia
 """
 st.write(intro_str)
 
-daily_close_df = get_latest_close_data(DIRPATH_DATASET)
+daily_close_df = get_close_data_from_dumps()
 
 ###############################################################################
 
@@ -68,7 +68,7 @@ fig.update_layout(
 # fig.update_xaxes(autorange=True)
 
 data_load_state.text('Creating graph... Done!')
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, theme=None)
 data_load_state.empty()
 
 ############################################################################
@@ -101,7 +101,7 @@ fig.update_layout(
 )
 
 data_load_state.text('Creating graph... Done!')
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, theme=None)
 data_load_state.empty()
 
 ##########################################################################################
