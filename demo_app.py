@@ -11,12 +11,7 @@ from funclib import days_since_ath, get_close_data_from_dumps
 
 
 st.title('Insights on Financial Markets')
-
-intro_str = """A collection of insights and analytics on the stock and cryptocurrency markets.
-
-You can find the source for this website at https://github.com/pmeletis/financial-assets-insights.
-"""
-st.write(intro_str)
+st.subheader('A collection of insights and analytics on the stock and cryptocurrency markets.')
 
 daily_close_df = get_close_data_from_dumps()
 
@@ -202,3 +197,10 @@ data_load_state.empty()
 # hour_to_filter = st.slider('hour', 0, 23, 17)
 
 # st.subheader('Map of all pickups at %s:00' % hour_to_filter)
+st.write()
+outro_str = """
+© 2024, P. Meletis.
+
+You can find the source for this website at https://github.com/pmeletis/financial-assets-insights.
+"""
+st.write(outro_str)
