@@ -12,7 +12,7 @@ from funclib import days_since_ath, get_close_data_from_dumps
 
 st.title('Insights on Financial Markets')
 
-intro_str = """A collection of insights and analytics on the US stock markets.
+intro_str = """A collection of insights and analytics on the stock and cryptocurrency markets.
 
 You can find the source for this website at https://github.com/pmeletis/financial-assets-insights.
 """
