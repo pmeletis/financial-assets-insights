@@ -15,6 +15,26 @@ st.subheader('A collection of insights and analytics on the stock and cryptocurr
 
 daily_close_df = get_close_data_from_dumps()
 
+col1, col2, col3, col4 = st.columns(4)
+col1.write('Stock market indices')
+sp_check = col1.checkbox('S&P500', value=True)
+nc_check = col1.checkbox('NASDAQ Comp', value=True)
+r2_check = col1.checkbox('RUSSEL2000', value=True)
+col2.write('Cryptocurrencies')
+btc_check = col2.checkbox('BTCUSD', value=True)
+
+filtered_columns = list()
+if sp_check:
+  filtered_columns.append('S&P500')
+if nc_check:
+  filtered_columns.append('NASDAQ Comp')
+if r2_check:
+  filtered_columns.append('RUSSEL2000')
+if btc_check:
+  filtered_columns.append('BTCUSD')
+
+daily_close_df = daily_close_df[filtered_columns]
+
 ###############################################################################
 
 st.header('Indices')
@@ -106,7 +126,7 @@ st.header('Number of days since the latest daily change')
 
 data_load_state = st.text('Creating graph...')
 
-change = st.slider('Change', min_value=-15, max_value=15, value=3)
+change = st.slider('Change', min_value=-15, max_value=15, value=3, format='%d%%')
 
 signals = daily_close_df.copy()
 dschange = signals.apply(days_since_change, change=change)
@@ -115,7 +135,7 @@ num_occurences = signals.apply(_num_occurences, change=change).to_list()
 dschange['Date'] = dschange.index
 # Melt the dataframe for Plotly Express
 melted_data = dschange.melt(id_vars='Date', var_name='index', value_name='# days')
-title = f'Number of days since the latest at least {change}% daily change ({num_occurences} times)'
+title = f'Number of days since the latest at least {change}%'
 fig = px.line(data_frame=melted_data, x='Date', y='# days', color='index', title=title)
 fig.update_yaxes(title=f'Days since latest at least {change}% change')
 
@@ -132,24 +152,9 @@ fig.update_layout(
 data_load_state.text('Creating graph... Done!')
 st.plotly_chart(fig, use_container_width=True, theme=None)
 data_load_state.empty()
+st.text(f'Num occurences per index: {num_occurences}.')
 
 ##########################################################################################
-# dsath_sp = dsath['S&P500']
-# dsath_nc = dsath['NASDAQ Comp']
-# dsath_r2 = dsath['RUSSEL2000']
-# dsath_btc = dsath['BTCUSD']
-# fig, _ = plt.subplots(ncols=2, figsize=(12,5), width_ratios=(3, 1))
-# plt.subplot(1, 2, 1)
-# plt.plot(dsath['S&P500'], label='S&P500')
-# plt.hlines(dsath_sp.iloc[-1], dsath_sp.index[0], dsath_sp.index[-1], linestyles='--', alpha=0.3, label='S&P 500 days since ATH')
-# plt.plot(dsath_nc, alpha=0.7, label='NASDAQ Composite')
-# plt.plot(dsath_r2, alpha=0.5, label='Russel 2000')
-# plt.plot(dsath_btc, alpha=0.5, label='BTC')
-# plt.gca().xaxis.set_major_locator(YearLocator(base=5))
-# plt.ylabel('Days since latest ATH')
-# plt.xlabel('Date')
-# plt.legend()
-
 
 # col1, col2, col3 = st.columns(3)
 # sp_check = col1.checkbox('S&P500', value=True)
@@ -230,6 +235,10 @@ data_load_state.empty()
 # hour_to_filter = st.slider('hour', 0, 23, 17)
 
 # st.subheader('Map of all pickups at %s:00' % hour_to_filter)
+
+# horizontal separator
+st.markdown("---")
+
 st.write()
 outro_str = """
 © 2024, P. Meletis.
