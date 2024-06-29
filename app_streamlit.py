@@ -106,7 +106,7 @@ st.header('Number of days since the latest daily change')
 
 data_load_state = st.text('Creating graph...')
 
-change = st.select_slider('Change', options=range(-15, 16), value=3)
+change = st.slider('Change', min_value=-15, max_value=15, value=3)
 
 signals = daily_close_df.copy()
 dschange = signals.apply(days_since_change, change=change)
