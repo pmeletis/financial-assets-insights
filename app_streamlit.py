@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from funclib import days_since_ath, get_close_data_from_dumps
+from funclib import days_since_ath, get_close_data_from_dumps, days_since_change, _num_occurences
 
 # DIRPATH_DATASET = Path.absolute(Path('.')) / 'datasets'
 
@@ -101,6 +101,39 @@ data_load_state.empty()
 
 ##########################################################################################
 
+
+st.header('Number of days since the latest daily change')
+
+data_load_state = st.text('Creating graph...')
+
+change = st.select_slider('Change', options=range(-15, 16), value=3)
+
+signals = daily_close_df.copy()
+dschange = signals.apply(days_since_change, change=change)
+num_occurences = signals.apply(_num_occurences, change=change).to_list()
+
+dschange['Date'] = dschange.index
+# Melt the dataframe for Plotly Express
+melted_data = dschange.melt(id_vars='Date', var_name='index', value_name='# days')
+title = f'Number of days since the latest at least {change}% daily change ({num_occurences} times)'
+fig = px.line(data_frame=melted_data, x='Date', y='# days', color='index', title=title)
+fig.update_yaxes(title=f'Days since latest at least {change}% change')
+
+fig.update_layout(
+    xaxis=dict(
+        tickmode='array',
+        tickvals=pd.to_datetime([f'{year}-01-01' for year in years]),
+        ticktext=[str(year) for year in years],
+        tickangle=45,  # Rotate labels for better readability
+        range=[pd.to_datetime(f'{start_year}-01-01'), pd.to_datetime(f'{end_year}-12-31')],
+    ),
+)
+
+data_load_state.text('Creating graph... Done!')
+st.plotly_chart(fig, use_container_width=True, theme=None)
+data_load_state.empty()
+
+##########################################################################################
 # dsath_sp = dsath['S&P500']
 # dsath_nc = dsath['NASDAQ Comp']
 # dsath_r2 = dsath['RUSSEL2000']

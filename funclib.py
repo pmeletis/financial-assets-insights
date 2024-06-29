@@ -59,7 +59,7 @@ def get_close_data_from_dumps(date_str: str = '20240621'):
                                           'NASDAQ Comp': nasdaq_comp_daily['Close'],
                                           'RUSSEL2000': russel2000_daily['Close']})
 
-  # read BTC
+  # read BTC optionally
   url_btc = URL_ASSETS + f'btcusd_daily_{date_str}.csv'
   try:
     btcusd_daily = reader_fn(url_btc)
@@ -143,4 +143,61 @@ def days_since_ath(signal: pd.Series, eps: Optional[float] = None):
     else:
       num_days_since_ath.append(num_days_since_ath[-1] + 1)
   num_days_since_ath = pd.Series(num_days_since_ath, index=signal.index, dtype=np.int32)
+
   return num_days_since_ath
+
+
+def _num_occurences(signal: pd.Series, change):
+  
+  # get rid of any NaNs in the beginning
+  signal = signal[signal.first_valid_index():]
+  # it can be that S&P does not have values for the weekend days
+  signal = signal.ffill()
+
+  frac_change = signal.pct_change()[1:] # the first element is NaN
+  pct_change = frac_change * 100
+
+  num_occurences = pct_change >= change if change > 0 else pct_change <= change
+  num_occurences = np.count_nonzero(num_occurences)
+
+  return num_occurences
+
+def days_since_change(signal: pd.Series, change, return_pct_change=False, return_num_occurences=False):
+  """Days since at least a percentage `change`.
+
+  Args:
+    change: percentage change, eg. 2 for 2%, or -1 for -1%
+
+  Return:
+    num_days_since_change: pd.Series
+    pct_change: pd.Series
+    num_occurences: int
+  """
+  # get rid of any NaNs in the beginning
+  signal = signal[signal.first_valid_index():]
+  # it can be that S&P does not have values for the weekend days
+  signal = signal.ffill()
+
+  frac_change = signal.pct_change()[1:] # the first element is NaN
+  pct_change = frac_change * 100
+
+  num_days_since_change = [0]
+  for i, c in enumerate(pct_change):
+    if (change > 0 and c < change) or (change < 0 and c > change):
+      num_days_since_change.append(num_days_since_change[i] + 1)
+    else:
+      num_days_since_change.append(0)
+  num_days_since_change = pd.Series(num_days_since_change, index=signal.index, dtype=np.int32)
+
+  num_occurences = pct_change >= change if change > 0 else pct_change <= change
+  num_occurences = np.count_nonzero(num_occurences)
+
+  rets = (num_days_since_change,)
+
+  if return_pct_change:
+    rets = rets + (pct_change,)
+
+  if return_num_occurences:
+    rets = rets + (num_occurences,)
+
+  return rets[0] if len(rets) == 1 else rets
