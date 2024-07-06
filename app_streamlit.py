@@ -9,6 +9,17 @@ from funclib import days_since_ath, get_close_data_from_dumps, days_since_change
 
 # DIRPATH_DATASET = Path.absolute(Path('.')) / 'datasets'
 
+st.set_page_config(
+    page_title="Financial Markets insights",
+    page_icon="📈",
+    layout="wide",
+    # initial_sidebar_state="expanded",
+    # menu_items={
+    #     'Get Help': 'https://www.extremelycoolapp.com/help',
+    #     'Report a bug': "https://www.extremelycoolapp.com/bug",
+    #     'About': "# This is a header. This is an *extremely* cool app!"
+    # }
+)
 
 st.title('Insights on Financial Markets')
 st.subheader('A collection of insights and analytics on the stock and cryptocurrency markets.')
