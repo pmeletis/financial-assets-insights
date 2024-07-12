@@ -16,21 +16,23 @@ from urllib.error import HTTPError
 
 URL_ASSETS = 'https://raw.githubusercontent.com/pmeletis/fai-dumps/main/'
 
+INFO = pd.DataFrame({
+    'yf_symbol': ['^GSPC', '^NDX', '^N100', '^RUT', '^IXIC', '^NYA', 'BTC-USD', 'ETH-USD'],
+    'filename_prefix': ['sp500', 'nasdaq100', 'euronext100', 'russel2000', 'nasdaq_comp', 'nyse_comp', 'btcusd', 'ethusd'],
+    'button_name': ['S&P 500', 'NASDAQ 100', 'EURONEXT 100', 'RUSSEL 2000', 'NASDAQ Composite', 'NYSE Composite', 'BTCUSD', 'ETHUSD'],
+    'button_default': [True, True, True, True, False, False, True, True],
+    'button_selection': [True, True, True, True, False, False, True, True],
+})
 
-def download_and_save_data(dirpath: Path):
-  current_date = date.today().strftime('%Y%m%d')
-  # fetch data with maximum duration
-  hist = yf.download('^IXIC', start='1927-01-01') # '^IXIC' for Nasdaq Composite
-  hist.to_csv(dirpath / f'nasdaq_comp_daily_{current_date}.csv')
-  time.sleep(2)
-  hist = yf.download('^GSPC', start='1927-01-01') # ^GSPC' for S&P 500
-  hist.to_csv(dirpath / f's&p500_daily_{current_date}.csv')
-  time.sleep(2)
-  hist = yf.download('^RUT', start='1927-01-01') # for Russel 2000
-  hist.to_csv(dirpath / f'russel2000_daily_{current_date}.csv')
-  time.sleep(2)
-  hist = yf.download('BTC-USD', start='1927-01-01') # for Bitcoin
-  hist.to_csv(dirpath / f'btcusd_daily_{current_date}.csv')
+
+def download_and_save_data(dirpath: Path, tts=3):
+  current_date_str = date.today().strftime('%Y%m%d')
+  dirpath = dirpath / current_date_str
+  dirpath.mkdir()
+  for symbol, prefix in INFO.itertuples(index=False):
+    df = yf.download(symbol, start='1927-01-01')
+    df.to_csv(dirpath / f'{current_date_str}-{prefix}-daily.csv')
+    time.sleep(3)
 
 
 def _get_most_recent(dirpath: Path, prefix):
@@ -42,94 +44,56 @@ def _get_most_recent(dirpath: Path, prefix):
 
 
 @st.cache_data
-def get_close_data_from_dumps(date_str: str = '20240621'):
+def get_close_data_from_dumps(date_str: str = '20240711'):
   reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
 
   # TODO(panos): handle http error 404 not found
 
-  url_sp = URL_ASSETS + f's%26p500_daily_{date_str}.csv'
-  sp500_daily = reader_fn(url_sp)
-
-  url_nc = URL_ASSETS + f'nasdaq_comp_daily_{date_str}.csv'
-  nasdaq_comp_daily = reader_fn(url_nc)
-
-  url_r2 = URL_ASSETS + f'russel2000_daily_{date_str}.csv'
-  russel2000_daily = reader_fn(url_r2)
-
-  # aggregate data
-  indices_all_daily_close = pd.DataFrame({'S&P500': sp500_daily['Close'],
-                                          'NASDAQ Comp': nasdaq_comp_daily['Close'],
-                                          'RUSSEL2000': russel2000_daily['Close']})
-
-  # read BTC optionally
-  url_btc = URL_ASSETS + f'btcusd_daily_{date_str}.csv'
-  try:
-    btcusd_daily = reader_fn(url_btc)
-  except HTTPError as e:
-    if e.code == 404:
-      print(f"Error 404: The requested URL {url_btc} was not found on the server.")
+  
+  dfs = dict()
+  for name in INFO['filename_prefix']:
+    url = URL_ASSETS + date_str + f'/{date_str}-{name}-daily.csv'
+    try:
+      df = reader_fn(url)
+    except HTTPError as e:
+      if e.code == 404:
+        print(f"Error 404: The requested URL {url} was not found on the server.")
+      else:
+        print(f"HTTP Error: {e.code}")
+      continue
+    except Exception as e:
+      print(f"Unknown error: {e.reason}")
+      continue
     else:
-      print(f"HTTP Error: {e.code}")
-  except Exception as e:
-    print(f"Unknown error: {e.reason}")
-  else:
-    indices_all_daily_close['BTCUSD'] = btcusd_daily['Close']
+      dfs[name] = df['Close']
 
-  # delete latest day to be sure all indices have no-NaN latest value
-  indices_all_daily_close = indices_all_daily_close[:-1]
+  # aggregate data and delete latest day to be sure all symbols
+  # have no-NaN latest value
+  daily_close = pd.DataFrame(dfs)
+  daily_close = daily_close[:-1]
 
-  return indices_all_daily_close
+  return daily_close
+
+
+def get_close_data_from_dir(dirpath: Path):
+
+  reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
+
+  dfs = dict()
+  for p in dirpath.glob('*.csv'):
+    name = p.name.split(sep='-')[1]
+    dfs[name] = reader_fn(p)['Close']
+
+  # aggregate data and delete latest day to be sure all symbols
+  # have no-NaN latest value
+  daily_close = pd.DataFrame(dfs)
+  daily_close = daily_close[:-1]
+
+  return daily_close
 
 
 @st.cache_data
 def get_latest_close_data_from_dir(dirpath: Path = Path()):
-  """Get data from local dir or download from online."""
-  # TODO(panos): handle better
-
-  reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
-
-  filepath_sp = _get_most_recent(dirpath, 's&p500_daily')
-  url_sp = URL_ASSETS + 's%26p500_daily_20240322.csv'
-  if filepath_sp is not None:
-    sp500_daily = reader_fn(filepath_sp)
-  else:
-    sp500_daily = reader_fn(url_sp)
-
-  filepath_nc = _get_most_recent(dirpath, 'nasdaq_comp_daily')
-  url_nc = URL_ASSETS + 'nasdaq_comp_daily_20240322.csv'
-  if filepath_nc is not None:
-    nasdaq_comp_daily = reader_fn(filepath_nc)
-  else:
-    nasdaq_comp_daily = reader_fn(url_nc)
-
-  filepath_r2 = _get_most_recent(dirpath, 'russel2000_daily')
-  url_r2 = URL_ASSETS + 'russel2000_daily_20240322.csv'
-  if filepath_nc is not None:
-    russel2000_daily = reader_fn(filepath_r2)
-  else:
-    russel2000_daily = reader_fn(url_r2)
-
-  filepath_btc = _get_most_recent(dirpath, 'btcusd_daily')
-  url_btc = URL_ASSETS + 'btcusd_daily_20240322.csv'
-  if filepath_nc is not None:
-    btcusd_daily = reader_fn(filepath_btc)
-  else:
-    btcusd_daily = reader_fn(url_btc)
-
-  # aggregate data
-  indices_all_daily_close = pd.DataFrame({'S&P500': sp500_daily['Close'],
-                                          'NASDAQ Comp': nasdaq_comp_daily['Close'],
-                                          'RUSSEL2000': russel2000_daily['Close'],
-                                          'BTCUSD': btcusd_daily['Close']})
-  # delete latest day to be sure all indices have no-NaN value
-  indices_all_daily_close = indices_all_daily_close[:-1]
-
-  return indices_all_daily_close
-
-
-@st.cache_data
-@deprecated('Use the get_close_data_from_* functions.')
-def get_latest_close_data(dirpath: Path = Path()):
   """Get data from local dir or download from online."""
   # TODO(panos): handle better
 
@@ -255,3 +219,50 @@ def days_since_change(signal: pd.Series, change, return_pct_change=False, return
     rets = rets + (num_occurences,)
 
   return rets[0] if len(rets) == 1 else rets
+
+
+@st.cache_data
+@deprecated('Use the get_close_data_from_* functions.')
+def get_latest_close_data(dirpath: Path = Path()):
+  """Get data from local dir or download from online."""
+  # TODO(panos): handle better
+
+  reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
+
+  filepath_sp = _get_most_recent(dirpath, 's&p500_daily')
+  url_sp = URL_ASSETS + 's%26p500_daily_20240322.csv'
+  if filepath_sp is not None:
+    sp500_daily = reader_fn(filepath_sp)
+  else:
+    sp500_daily = reader_fn(url_sp)
+
+  filepath_nc = _get_most_recent(dirpath, 'nasdaq_comp_daily')
+  url_nc = URL_ASSETS + 'nasdaq_comp_daily_20240322.csv'
+  if filepath_nc is not None:
+    nasdaq_comp_daily = reader_fn(filepath_nc)
+  else:
+    nasdaq_comp_daily = reader_fn(url_nc)
+
+  filepath_r2 = _get_most_recent(dirpath, 'russel2000_daily')
+  url_r2 = URL_ASSETS + 'russel2000_daily_20240322.csv'
+  if filepath_nc is not None:
+    russel2000_daily = reader_fn(filepath_r2)
+  else:
+    russel2000_daily = reader_fn(url_r2)
+
+  filepath_btc = _get_most_recent(dirpath, 'btcusd_daily')
+  url_btc = URL_ASSETS + 'btcusd_daily_20240322.csv'
+  if filepath_nc is not None:
+    btcusd_daily = reader_fn(filepath_btc)
+  else:
+    btcusd_daily = reader_fn(url_btc)
+
+  # aggregate data
+  indices_all_daily_close = pd.DataFrame({'S&P500': sp500_daily['Close'],
+                                          'NASDAQ Comp': nasdaq_comp_daily['Close'],
+                                          'RUSSEL2000': russel2000_daily['Close'],
+                                          'BTCUSD': btcusd_daily['Close']})
+  # delete latest day to be sure all indices have no-NaN value
+  indices_all_daily_close = indices_all_daily_close[:-1]
+
+  return indices_all_daily_close

@@ -5,9 +5,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from funclib import days_since_ath, get_close_data_from_dumps, days_since_change, _num_occurences
+from funclib import (INFO, _num_occurences, days_since_ath, days_since_change,
+                     get_close_data_from_dumps)
 
-# DIRPATH_DATASET = Path.absolute(Path('.')) / 'datasets'
 
 st.set_page_config(
     page_title="Financial Markets insights",
@@ -26,25 +26,16 @@ st.subheader('A collection of insights and analytics on the stock and cryptocurr
 
 daily_close_df = get_close_data_from_dumps()
 
-col1, col2, col3, col4 = st.columns(4)
-col1.write('Stock market indices')
-sp_check = col1.checkbox('S&P500', value=True)
-nc_check = col1.checkbox('NASDAQ Comp', value=True)
-r2_check = col1.checkbox('RUSSEL2000', value=True)
-col2.write('Cryptocurrencies')
-btc_check = col2.checkbox('BTCUSD', value=True)
+with st.sidebar:
+  st.write('Stock market indices')
+  for row in INFO[['button_name', 'button_default']][:-2].itertuples():
+    INFO.at[row.Index, 'button_selection'] = st.checkbox(row.button_name, value=row.button_default)
+  st.write('Cryptocurrencies')
+  for row in INFO[['button_name', 'button_default']][-2:].itertuples():
+    INFO.at[row.Index, 'button_selection'] = st.checkbox(row.button_name, value=row.button_default)
 
-filtered_columns = list()
-if sp_check:
-  filtered_columns.append('S&P500')
-if nc_check:
-  filtered_columns.append('NASDAQ Comp')
-if r2_check:
-  filtered_columns.append('RUSSEL2000')
-if btc_check:
-  filtered_columns.append('BTCUSD')
-
-daily_close_df = daily_close_df[filtered_columns]
+columns_to_keep = INFO['filename_prefix'][INFO['button_selection']]
+daily_close_df = daily_close_df[columns_to_keep]
 
 ###############################################################################
 
