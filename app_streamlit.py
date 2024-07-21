@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -20,6 +21,8 @@ st.set_page_config(
     #     'About': "# This is a header. This is an *extremely* cool app!"
     # }
 )
+
+timer_start = time.time_ns()
 
 st.title('Insights on Financial Markets')
 st.subheader('A collection of insights and analytics on the stock and cryptocurrency markets.')
@@ -248,3 +251,4 @@ outro_str = """
 You can find the source for this website at https://github.com/pmeletis/financial-assets-insights.
 """
 st.write(outro_str)
+st.write('Page created in (ms):', (time.time_ns() - timer_start) / 1_000_000)
