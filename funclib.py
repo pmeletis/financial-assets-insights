@@ -44,7 +44,7 @@ def _get_most_recent(dirpath: Path, prefix):
 
 
 @st.cache_data
-def get_close_data_from_dumps(date_str: str = '20240711'):
+def get_close_data_from_dumps(date_str: str = '20240801'):
   reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
 
   # TODO(panos): handle http error 404 not found

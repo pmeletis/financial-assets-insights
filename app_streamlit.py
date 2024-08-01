@@ -6,9 +6,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from funclib import (INFO, _num_occurences, days_since_ath, days_since_change,
+from funclib import (INFO, _num_occurences, days_since_change,
                      get_close_data_from_dumps)
-
 
 st.set_page_config(
     page_title="Financial Markets insights",
