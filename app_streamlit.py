@@ -7,7 +7,7 @@ import plotly.express as px
 import streamlit as st
 
 from funclib import (INFO, _num_occurences, days_since_change,
-                     get_close_data_from_dumps)
+                     get_close_data_from_dumps, batch_process)
 
 st.set_page_config(
     page_title="Financial Markets insights",
@@ -27,6 +27,8 @@ st.title('Insights on Financial Markets')
 st.subheader('A collection of insights and analytics on the stock and cryptocurrency markets.')
 
 daily_close_df = get_close_data_from_dumps()
+assert len(daily_close_df) > 0, 'Empty daily_close dataframe.'
+dsath_df = batch_process(daily_close_df)
 
 with st.sidebar:
   st.write('Stock market indices')
@@ -36,8 +38,11 @@ with st.sidebar:
   for row in INFO[['button_name', 'button_default']][-2:].itertuples():
     INFO.at[row.Index, 'button_selection'] = st.checkbox(row.button_name, value=row.button_default)
 
-columns_to_keep = INFO['filename_prefix'][INFO['button_selection']]
-daily_close_df = daily_close_df[columns_to_keep]
+columns_to_keep = INFO['filename_prefix'][INFO['button_selection']]#.to_list()
+daily_close = daily_close_df[columns_to_keep]
+dsath = dsath_df[columns_to_keep]
+daily_close['Date'] = daily_close.index
+dsath['Date'] = dsath_df.index
 
 ###############################################################################
 
@@ -45,9 +50,7 @@ st.header('Indices')
 
 data_load_state = st.text('Creating graph...')
 
-daily_close = daily_close_df.copy()
-daily_close['Date'] = daily_close.index
-# Melt the dataframe for Plotly Express
+# melt the dataframe for Plotly Express
 melted_data = daily_close.melt(id_vars='Date', var_name='index', value_name='USD')
 
 fig = px.line(data_frame=melted_data, x='Date', y='USD', color='index', 
@@ -96,10 +99,6 @@ st.header('Days since latest All Time High')
 
 data_load_state = st.text('Creating graph...')
 
-dsath = daily_close_df.copy()
-dsath = dsath.apply(days_since_ath)
-
-dsath['Date'] = dsath.index
 # Melt the dataframe for Plotly Express
 melted_data = dsath.melt(id_vars='Date', var_name='index', value_name='# days')
 fig = px.line(data_frame=melted_data, x='Date', y='# days', color='index', 
@@ -132,9 +131,8 @@ data_load_state = st.text('Creating graph...')
 
 change = st.slider('Change', min_value=-15, max_value=15, value=3, format='%d%%')
 
-signals = daily_close_df.copy()
-dschange = signals.apply(days_since_change, change=change)
-num_occurences = signals.apply(_num_occurences, change=change).to_list()
+dschange = daily_close_df[columns_to_keep].apply(days_since_change, change=change)
+num_occurences = daily_close_df[columns_to_keep].apply(_num_occurences, change=change).to_list()
 
 dschange['Date'] = dschange.index
 # Melt the dataframe for Plotly Express

@@ -20,6 +20,7 @@ INFO = pd.DataFrame({
     'yf_symbol': ['^GSPC', '^NDX', '^N100', '^RUT', '^IXIC', '^NYA', 'BTC-USD', 'ETH-USD'],
     'filename_prefix': ['sp500', 'nasdaq100', 'euronext100', 'russel2000', 'nasdaq_comp', 'nyse_comp', 'btcusd', 'ethusd'],
     'button_name': ['S&P 500', 'NASDAQ 100', 'EURONEXT 100', 'RUSSEL 2000', 'NASDAQ Composite', 'NYSE Composite', 'BTCUSD', 'ETHUSD'],
+    # 'legend_name': [],
     'button_default': [True, True, True, True, False, False, True, True],
     'button_selection': [True, True, True, True, False, False, True, True],
 })
@@ -29,7 +30,7 @@ def download_and_save_data(dirpath: Path, tts=3):
   current_date_str = date.today().strftime('%Y%m%d')
   dirpath = dirpath / current_date_str
   dirpath.mkdir()
-  for symbol, prefix in INFO.itertuples(index=False):
+  for symbol, prefix, _, _, _ in INFO.itertuples(index=False):
     df = yf.download(symbol, start='1927-01-01')
     df.to_csv(dirpath / f'{current_date_str}-{prefix}-daily.csv')
     time.sleep(3)
@@ -44,7 +45,7 @@ def _get_most_recent(dirpath: Path, prefix):
 
 
 @st.cache_data
-def get_close_data_from_dumps(date_str: str = '20240801'):
+def get_close_data_from_dumps(date_str: str = '20240803'):
   reader_fn = partial(pd.read_csv, parse_dates=['Date'], index_col='Date')
 
   # TODO(panos): handle http error 404 not found
@@ -71,6 +72,9 @@ def get_close_data_from_dumps(date_str: str = '20240801'):
   # have no-NaN latest value
   daily_close = pd.DataFrame(dfs)
   daily_close = daily_close[:-1]
+
+  # fill in gaps
+  daily_close = daily_close.ffill()
 
   return daily_close
 
@@ -139,7 +143,8 @@ def get_latest_close_data_from_dir(dirpath: Path = Path()):
 
 
 def days_since_ath(signal: pd.Series, eps: Optional[float] = None):
-
+  assert isinstance(signal, pd.Series)
+  signal = signal.copy()
   # get rid of any NaNs in the beginning
   signal = signal[signal.first_valid_index():]
   # it can be that S&P does not have values for the weekend days
@@ -165,7 +170,7 @@ def days_since_ath(signal: pd.Series, eps: Optional[float] = None):
 def _num_occurences(signal: pd.Series, change):
   """How many times a change larger than 'change' has occured.
   """
-  
+  assert isinstance(signal, pd.Series)
   # get rid of any NaNs in the beginning
   signal = signal[signal.first_valid_index():]
   # it can be that S&P does not have values for the weekend days
@@ -191,6 +196,7 @@ def days_since_change(signal: pd.Series, change, return_pct_change=False, return
     pct_change: pd.Series
     num_occurences: int
   """
+  assert isinstance(signal, pd.Series)
   # get rid of any NaNs in the beginning
   signal = signal[signal.first_valid_index():]
   # it can be that S&P does not have values for the weekend days
@@ -219,6 +225,19 @@ def days_since_change(signal: pd.Series, change, return_pct_change=False, return
     rets = rets + (num_occurences,)
 
   return rets[0] if len(rets) == 1 else rets
+
+
+@st.cache_data
+def batch_process(daily_close: pd.DataFrame):
+  """Process everything in one function to reduce computations.
+  """
+  supported_column_names = set(INFO['filename_prefix'])
+  if len(new_cols := set(daily_close.columns) - supported_column_names) > 0:
+    raise ValueError(f'unexpected columns in `daily_close`: {new_cols}.')
+
+  dsath = daily_close.apply(days_since_ath)
+
+  return dsath
 
 
 @st.cache_data
