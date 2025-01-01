@@ -14,9 +14,8 @@ st.set_page_config(
 )
 
 pages = {
-    "Index ratios": [
+    "Stock markets": [
         st.Page("index_ratios.py", title="Index ratios"),
-        # st.Page("trial.py", title="Try it out"),
     ],
     "Overall": [
         st.Page("overall.py", title="Overall"),

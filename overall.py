@@ -6,8 +6,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from description_strings import outro_string
 from funclib import (INFO, _num_occurences, batch_process, days_since_change,
-                     get_close_data_from_dumps, outro_string)
+                     get_close_data_from_dumps)
 
 timer_start = time.time_ns()
 
