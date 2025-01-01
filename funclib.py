@@ -291,7 +291,7 @@ def get_latest_close_data(dirpath: Path = Path()):
 
 @st.cache_data
 def get_close_data_by_symbol(symbol_name: str, symbol_source: Path | URL) -> pd.Series:
-  if symbol_name not in ['^FTW5000', '^NDX', '^SPX', '^SPXEW']:
+  if symbol_name not in ['^FTW5000', '^NDX', '^SPX', '^SPXEW', '^IXIC']:
     raise ValueError()
 
   if isinstance(symbol_source, Path) and symbol_source.exists() and symbol_source.is_dir():
@@ -316,14 +316,17 @@ def get_ratios_df(dropna: False | Literal['all', 'any'] = 'all',
   """
   ftw5000 = get_close_data_by_symbol('^FTW5000', Path('datasets/20241203'))
   spx = get_close_data_by_symbol('^SPX', Path('datasets/20241203'))
-  ndx = get_close_data_by_symbol('^NDX', Path('datasets/20241203'))
   spxew = get_close_data_by_symbol('^SPXEW', Path('datasets/20241203'))
+  ndx = get_close_data_by_symbol('^NDX', Path('datasets/20241203'))
+  ixic = get_close_data_by_symbol('^IXIC', Path('datasets/20241203'))
 
   spx_ftw5000 = spx / ftw5000
-  ndx_spx = ndx / spx
   spx_spxew = spx / spxew
+  ndx_spx = ndx / spx
+  ndx_ixic = ndx / ixic
 
-  ratios_df = pd.concat({'spx/ftw5000': spx_ftw5000, 'ndx/spx': ndx_spx, 'spx/spxew': spx_spxew},
+  ratios_df = pd.concat({'spx/ftw5000': spx_ftw5000, 'spx/spxew': spx_spxew,
+                         'ndx/spx': ndx_spx, 'ndx/ixic': ndx_ixic},
                         axis=1, verify_integrity=True)
 
   if dropna is not False:
@@ -339,3 +342,16 @@ def get_ratios_df(dropna: False | Literal['all', 'any'] = 'all',
     ratios_df = ratios_df.reset_index().melt(id_vars=['date'], var_name='metric', value_name='value')
 
   return ratios_df
+
+
+def get_outro_string():
+  outro_str = """
+  © 2024-2025, P. Meletis.
+
+  This website is for educational purposes only. It is not intended as financial or investment advice.
+
+  Data is sourced from Yahoo Finance, NASDAQ, and other public sources.
+
+  You can find the source for this website at https://github.com/pmeletis/financial-assets-insights.
+  """
+  return outro_str
