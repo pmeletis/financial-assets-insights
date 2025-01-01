@@ -289,6 +289,22 @@ def get_latest_close_data(dirpath: Path = Path()):
   return indices_all_daily_close
 
 
+def download_df_csv(url: URL) -> Optional[pd.DataFrame]:
+  reader_fn = partial(pd.read_csv, parse_dates=['Date'])
+  try:
+    df = reader_fn(url)
+  except HTTPError as e:
+    if e.code == 404:
+      print(f"Error 404: The requested URL {url} was not found on the server.")
+    else:
+      print(f"HTTP Error: {e.code}")
+    return None
+  except Exception as e:
+    print(f"Unknown error: {str(e)}")
+    return None
+  return df
+
+
 @st.cache_data
 def get_close_data_by_symbol(symbol_name: str, symbol_source: Path | URL) -> pd.Series:
   if symbol_name not in ['^FTW5000', '^NDX', '^SPX', '^SPXEW', '^IXIC']:
@@ -300,25 +316,35 @@ def get_close_data_by_symbol(symbol_name: str, symbol_source: Path | URL) -> pd.
     df.columns = df.columns.str.lower()
     df = df.set_index('date')
     return df['close']
+  elif isinstance(symbol_source, URL):
+    url = URL_ASSETS + f'{symbol_source}/{symbol_source}-{symbol_name[1:].lower()}-daily.csv'
+    df = download_df_csv(url)
+    if df is None:
+      raise ValueError(f'Could not download data from {url}.')
+    df.columns = df.columns.str.lower()
+    df = df.set_index('date')
+    return df['close']
   else:
     raise NotImplementedError(f'Getting data for {symbol_name} from {symbol_source} is not implemented.')
 
 @st.cache_data
-def get_ratios_df(dropna: False | Literal['all', 'any'] = 'all',
+def get_ratios_df(symbol_source: Path | URL = '20241203',
+                  dropna: False | Literal['all', 'any'] = 'all',
                   long_format: bool = False,
                   subsample_step: int = 1,
                   append_date_column: bool = False) -> pd.DataFrame:
   """
   Args:
+    symbol_source: The source of the data. Can be a Path or a date string of format 'YYYYMMDD.
     subsample_step: The step to subsample the data. Default is 1, meaning no subsampling.
     append_date_column: If True, a 'date' column is appended to the DataFrame.
       Does not apply if `long_format` is True.
   """
-  ftw5000 = get_close_data_by_symbol('^FTW5000', Path('datasets/20241203'))
-  spx = get_close_data_by_symbol('^SPX', Path('datasets/20241203'))
-  spxew = get_close_data_by_symbol('^SPXEW', Path('datasets/20241203'))
-  ndx = get_close_data_by_symbol('^NDX', Path('datasets/20241203'))
-  ixic = get_close_data_by_symbol('^IXIC', Path('datasets/20241203'))
+  ftw5000 = get_close_data_by_symbol('^FTW5000', symbol_source)
+  spx = get_close_data_by_symbol('^SPX', symbol_source)
+  spxew = get_close_data_by_symbol('^SPXEW', symbol_source)
+  ndx = get_close_data_by_symbol('^NDX', symbol_source)
+  ixic = get_close_data_by_symbol('^IXIC', symbol_source)
 
   spx_ftw5000 = spx / ftw5000
   spx_spxew = spx / spxew

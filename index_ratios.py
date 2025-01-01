@@ -37,7 +37,7 @@ def generate_twin_chart(data: pd.DataFrame, y1_col: str, y1_title: str, y2_col: 
 st.title('Insights on Financial Markets')
 st.subheader('A collection of insights and analytics on the stock and cryptocurrency markets.')
 
-ratios_df = get_ratios_df(subsample_step=4, append_date_column=True)
+ratios_df = get_ratios_df(symbol_source='20241203', subsample_step=4, append_date_column=True)
 
 # Chart 1 ########################################################################################
 with st.expander('Symbols description', expanded=False, icon=':material/info:'):
