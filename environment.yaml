@@ -1,0 +1,10 @@
+name: financial_assets_insights
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - streamlit
+  - plotly
+  - yfinance
+  - pip
+  - vegafusion
