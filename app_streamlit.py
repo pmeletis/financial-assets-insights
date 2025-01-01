@@ -14,12 +14,12 @@ st.set_page_config(
 )
 
 pages = {
-    "Overall": [
-        st.Page("overall.py", title="Overall"),
-    ],
-    "Ratios": [
+    "Index ratios": [
         st.Page("index_ratios.py", title="Index ratios"),
         # st.Page("trial.py", title="Try it out"),
+    ],
+    "Overall": [
+        st.Page("overall.py", title="Overall"),
     ],
 }
 
