@@ -290,6 +290,11 @@ def get_latest_close_data(dirpath: Path = Path()):
 
 
 def download_df_csv(url: URL) -> Optional[pd.DataFrame]:
+  """Download a csv dataframe from `url`. The csv file must have a 'Date' column.
+
+  Returns:
+    df: pd.DataFrame or None if an error occurred.
+  """
   reader_fn = partial(pd.read_csv, parse_dates=['Date'])
   try:
     df = reader_fn(url)
@@ -298,34 +303,34 @@ def download_df_csv(url: URL) -> Optional[pd.DataFrame]:
       print(f"Error 404: The requested URL {url} was not found on the server.")
     else:
       print(f"HTTP Error: {e.code}")
-    return None
+    df = None
   except Exception as e:
     print(f"Unknown error: {str(e)}")
-    return None
+    df = None
+
   return df
 
 
 @st.cache_data
 def get_close_data_by_symbol(symbol_name: str, symbol_source: Path | URL) -> pd.Series:
   if symbol_name not in ['^FTW5000', '^NDX', '^SPX', '^SPXEW', '^IXIC']:
-    raise ValueError()
+    raise ValueError('Symbol name not supported.')
 
-  if isinstance(symbol_source, Path) and symbol_source.exists() and symbol_source.is_dir():
+  if isinstance(symbol_source, Path) and symbol_source.is_dir() and symbol_source.exists():
     df = pd.read_csv(symbol_source / f'{symbol_source.name}-{symbol_name[1:].lower()}-daily.csv',
                      parse_dates=['Date'])
-    df.columns = df.columns.str.lower()
-    df = df.set_index('date')
-    return df['close']
   elif isinstance(symbol_source, URL):
     url = URL_ASSETS + f'{symbol_source}/{symbol_source}-{symbol_name[1:].lower()}-daily.csv'
     df = download_df_csv(url)
     if df is None:
       raise ValueError(f'Could not download data from {url}.')
-    df.columns = df.columns.str.lower()
-    df = df.set_index('date')
-    return df['close']
   else:
     raise NotImplementedError(f'Getting data for {symbol_name} from {symbol_source} is not implemented.')
+
+  df.columns = df.columns.str.lower()
+  df = df.set_index('date')
+  return df['close']
+
 
 @st.cache_data
 def get_ratios_df(symbol_source: Path | URL = '20241203',
@@ -368,16 +373,3 @@ def get_ratios_df(symbol_source: Path | URL = '20241203',
     ratios_df = ratios_df.reset_index().melt(id_vars=['date'], var_name='metric', value_name='value')
 
   return ratios_df
-
-
-def get_outro_string():
-  outro_str = """
-  © 2024-2025, P. Meletis.
-
-  This website is for educational purposes only. It is not intended as financial or investment advice.
-
-  Data is sourced from Yahoo Finance, NASDAQ, and other public sources.
-
-  You can find the source for this website at https://github.com/pmeletis/financial-assets-insights.
-  """
-  return outro_str

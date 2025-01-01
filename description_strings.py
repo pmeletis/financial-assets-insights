@@ -11,3 +11,14 @@ description_ndx = ('**NASDAQ 100**: NASDAQ 100 Index. A market-capitalization-we
                    'the 100 largest non-financial companies listed on NASDAQ.')
 description_ixic = ('**NASDAQ Composite**: A market-capitalization-weighted index of all common '
                     'stocks listed on NASDAQ.')
+
+outro_string = """
+    © 2024-2025, P. Meletis. All rights reserved.
+
+    This website is for educational purposes only. It is not intended as financial 
+    or investment advice.
+
+    Data is sourced from Yahoo Finance, NASDAQ, and other public sources.
+    You can find the source code for this website 
+    [here](https://github.com/pmeletis/financial-assets-insights).
+    """

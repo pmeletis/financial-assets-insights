@@ -6,8 +6,8 @@ import streamlit as st
 
 from description_strings import (description_ftw5000, description_ixic,
                                  description_ndx, description_spx,
-                                 description_spxew)
-from funclib import get_outro_string, get_ratios_df
+                                 description_spxew, outro_string)
+from funclib import get_ratios_df
 
 alt.data_transformers.enable('vegafusion')
 
@@ -70,5 +70,5 @@ st.divider()
 
 # Outro ###########################################################################################
 st.write('')
-st.write(get_outro_string())
+st.write(outro_string)
 st.write(f'Page created in {(time.time_ns() - timer_start) / 1_000_000_000:.1f} sec.')

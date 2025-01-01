@@ -7,7 +7,7 @@ import plotly.express as px
 import streamlit as st
 
 from funclib import (INFO, _num_occurences, batch_process, days_since_change,
-                     get_close_data_from_dumps, get_outro_string)
+                     get_close_data_from_dumps, outro_string)
 
 timer_start = time.time_ns()
 
@@ -148,5 +148,5 @@ st.text(f'Num occurences per index: {num_occurences}.')
 st.markdown("---")
 
 st.write()
-st.write(get_outro_string())
+st.write(outro_string)
 st.write(f'Page created in {(time.time_ns() - timer_start) / 1_000_000_000:.1f} sec.')
