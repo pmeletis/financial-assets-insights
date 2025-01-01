@@ -2,18 +2,18 @@ import time
 from datetime import date
 from functools import partial
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 from typing_extensions import deprecated
+from typing import TypeAlias
 # from warnings import deprecated # Python 3.13 onwards
 
-# import matplotlib.patches as patches
-# import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
 import yfinance as yf
 from urllib.error import HTTPError
 
+URL: TypeAlias = str
 URL_ASSETS = 'https://raw.githubusercontent.com/pmeletis/fai-dumps/main/'
 
 INFO = pd.DataFrame({
@@ -50,7 +50,6 @@ def get_close_data_from_dumps(date_str: str = '20240904'):
 
   # TODO(panos): handle http error 404 not found
 
-  
   dfs = dict()
   for name in INFO['filename_prefix']:
     url = URL_ASSETS + date_str + f'/{date_str}-{name}-daily.csv'
@@ -185,11 +184,13 @@ def _num_occurences(signal: pd.Series, change):
   return num_occurences
 
 
-def days_since_change(signal: pd.Series, change, return_pct_change=False, return_num_occurences=False):
+def days_since_change(signal: pd.Series, change, days_period: int = 1,
+                      return_pct_change=False, return_num_occurences=False):
   """Days since at least a percentage `change`.
 
   Args:
     change: percentage change, eg. 2 for 2%, or -1 for -1%
+    days_period: number of days to accumulate for the change
 
   Return:
     num_days_since_change: pd.Series
@@ -197,12 +198,13 @@ def days_since_change(signal: pd.Series, change, return_pct_change=False, return
     num_occurences: int
   """
   assert isinstance(signal, pd.Series)
+  assert isinstance(days_period, int) and days_period >= 1
   # get rid of any NaNs in the beginning
   signal = signal[signal.first_valid_index():]
   # it can be that S&P does not have values for the weekend days
   signal = signal.ffill()
 
-  frac_change = signal.pct_change()[1:] # the first element is NaN
+  frac_change = signal.pct_change(periods=days_period)[1:] # the first element is NaN
   pct_change = frac_change * 100
 
   num_days_since_change = [0]
@@ -285,3 +287,55 @@ def get_latest_close_data(dirpath: Path = Path()):
   indices_all_daily_close = indices_all_daily_close[:-1]
 
   return indices_all_daily_close
+
+
+@st.cache_data
+def get_close_data_by_symbol(symbol_name: str, symbol_source: Path | URL) -> pd.Series:
+  if symbol_name not in ['^FTW5000', '^NDX', '^SPX', '^SPXEW']:
+    raise ValueError()
+
+  if isinstance(symbol_source, Path) and symbol_source.exists() and symbol_source.is_dir():
+    df = pd.read_csv(symbol_source / f'{symbol_source.name}-{symbol_name[1:].lower()}-daily.csv',
+                     parse_dates=['Date'])
+    df.columns = df.columns.str.lower()
+    df = df.set_index('date')
+    return df['close']
+  else:
+    raise NotImplementedError(f'Getting data for {symbol_name} from {symbol_source} is not implemented.')
+
+@st.cache_data
+def get_ratios_df(dropna: False | Literal['all', 'any'] = 'all',
+                  long_format: bool = False,
+                  subsample_step: int = 1,
+                  append_date_column: bool = False) -> pd.DataFrame:
+  """
+  Args:
+    subsample_step: The step to subsample the data. Default is 1, meaning no subsampling.
+    append_date_column: If True, a 'date' column is appended to the DataFrame.
+      Does not apply if `long_format` is True.
+  """
+  ftw5000 = get_close_data_by_symbol('^FTW5000', Path('datasets/20241203'))
+  spx = get_close_data_by_symbol('^SPX', Path('datasets/20241203'))
+  ndx = get_close_data_by_symbol('^NDX', Path('datasets/20241203'))
+  spxew = get_close_data_by_symbol('^SPXEW', Path('datasets/20241203'))
+
+  spx_ftw5000 = spx / ftw5000
+  ndx_spx = ndx / spx
+  spx_spxew = spx / spxew
+
+  ratios_df = pd.concat({'spx/ftw5000': spx_ftw5000, 'ndx/spx': ndx_spx, 'spx/spxew': spx_spxew},
+                        axis=1, verify_integrity=True)
+
+  if dropna is not False:
+    first_valid_index = ratios_df.dropna(how=dropna).index[0]
+    ratios_df = ratios_df.loc[first_valid_index:]
+
+  ratios_df = ratios_df.iloc[::subsample_step, :]
+
+  if append_date_column:
+    ratios_df['date'] = ratios_df.index
+
+  if long_format:
+    ratios_df = ratios_df.reset_index().melt(id_vars=['date'], var_name='metric', value_name='value')
+
+  return ratios_df
