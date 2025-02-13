@@ -12,6 +12,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 from urllib.error import HTTPError
+import altair as alt
 
 URL: TypeAlias = str
 URL_ASSETS = 'https://raw.githubusercontent.com/pmeletis/fai-dumps/main/'
@@ -313,14 +314,20 @@ def download_df_csv(url: URL) -> Optional[pd.DataFrame]:
 
 @st.cache_data
 def get_close_data_by_symbol(symbol_name: str, symbol_source: Path | URL) -> pd.Series:
-  if symbol_name not in ['^FTW5000', '^NDX', '^SPX', '^SPXEW', '^IXIC']:
+  """
+  
+  Args:
+    symbol_source: The source of the data. If a Path is given, it is assumed to exist
+      locally. If a date string is given, it is assumed it is online.
+  """
+  if symbol_name not in ['^FTW5000', '^NDX', '^SPX', '^SPXEW', '^IXIC', 'USGDP']:
     raise ValueError('Symbol name not supported.')
 
+  ending = f'{symbol_name.lower()}-yearly' if symbol_name in ['USGDP'] else f'{symbol_name[1:].lower()}-daily'
   if isinstance(symbol_source, Path) and symbol_source.is_dir() and symbol_source.exists():
-    df = pd.read_csv(symbol_source / f'{symbol_source.name}-{symbol_name[1:].lower()}-daily.csv',
-                     parse_dates=['Date'])
+    df = pd.read_csv(symbol_source / f'{symbol_source.name}-{ending}.csv', parse_dates=['Date'])
   elif isinstance(symbol_source, URL):
-    url = URL_ASSETS + f'{symbol_source}/{symbol_source}-{symbol_name[1:].lower()}-daily.csv'
+    url = URL_ASSETS + f'{symbol_source}/{symbol_source}-{ending}.csv'
     df = download_df_csv(url)
     if df is None:
       raise ValueError(f'Could not download data from {url}.')
@@ -330,6 +337,22 @@ def get_close_data_by_symbol(symbol_name: str, symbol_source: Path | URL) -> pd.
   df.columns = df.columns.str.lower()
   df = df.set_index('date')
   return df['close']
+
+
+def _reindex_and_compute_ratio(a: pd.Series, b: pd.Series):
+  """Reindex `b` to match the index of `a` and compute the ratio `a / b`."""
+  # check if a and b have date indices
+  if not isinstance(a.index, pd.DatetimeIndex) or not isinstance(b.index, pd.DatetimeIndex):
+    raise ValueError('Indices must be of DatetimeIndex.')
+
+  # check if indices are monotonic
+  if not a.index.is_monotonic_increasing:
+    a = a.sort_index()
+  if not b.index.is_monotonic_increasing:
+    b = b.sort_index()
+
+  b_aligned = b.reindex(a.index, method="ffill")
+  return a / b_aligned
 
 
 @st.cache_data
@@ -350,14 +373,19 @@ def get_ratios_df(symbol_source: Path | URL = '20241203',
   spxew = get_close_data_by_symbol('^SPXEW', symbol_source)
   ndx = get_close_data_by_symbol('^NDX', symbol_source)
   ixic = get_close_data_by_symbol('^IXIC', symbol_source)
+  usgdp = get_close_data_by_symbol('USGDP', symbol_source)
 
-  spx_ftw5000 = spx / ftw5000
-  spx_spxew = spx / spxew
-  ndx_spx = ndx / spx
-  ndx_ixic = ndx / ixic
+  # TODO(panos): series may not be aligned date-wise, align them first and then compute ratio
+  spx_ftw5000 = _reindex_and_compute_ratio(spx, ftw5000)
+  spx_spxew = _reindex_and_compute_ratio(spx, spxew)
+  ndx_spx = _reindex_and_compute_ratio(ndx, spx)
+  ndx_ixic = _reindex_and_compute_ratio(ndx, ixic)
+  spx_usgdp = _reindex_and_compute_ratio(spx, usgdp)
+  ftw5000_usgdp = _reindex_and_compute_ratio(ftw5000, usgdp)
 
   ratios_df = pd.concat({'spx/ftw5000': spx_ftw5000, 'spx/spxew': spx_spxew,
-                         'ndx/spx': ndx_spx, 'ndx/ixic': ndx_ixic},
+                         'ndx/spx': ndx_spx, 'ndx/ixic': ndx_ixic,
+                         'spx/usgdp': spx_usgdp, 'ftw5000/usgdp': ftw5000_usgdp},
                         axis=1, verify_integrity=True)
 
   if dropna is not False:
@@ -373,3 +401,27 @@ def get_ratios_df(symbol_source: Path | URL = '20241203',
     ratios_df = ratios_df.reset_index().melt(id_vars=['date'], var_name='metric', value_name='value')
 
   return ratios_df
+
+
+def generate_twin_chart(data: pd.DataFrame, y1_col: str, y1_title: str, y2_col: str, y2_title: str
+                        ) -> alt.Chart:
+  tableau_colors = ['#4C78A8', '#F58518']
+  # find the first valid index in data
+  data = data[data[[y1_col, y2_col]].first_valid_index():]
+  base = alt.Chart(data).encode(x=alt.X('date:T', title='date'))
+  # add y1 and y2 charts
+  y1_schema = alt.Y(y1_col + ':Q',
+                    axis=alt.Axis(title=y1_title, titleColor=tableau_colors[0]),
+                    scale=alt.Scale(zero=False))
+  y1_tooltips = [alt.Tooltip('date:T', title='date'),
+                 alt.Tooltip(y1_col + ':Q', title=y1_title, format='.3f')]
+  y1_chart = base.mark_line(color=tableau_colors[0]).encode(y=y1_schema, tooltip=y1_tooltips).interactive()
+  y2_schema = alt.Y(y2_col + ':Q',
+                    axis=alt.Axis(title=y2_title, titleColor=tableau_colors[1]),
+                    scale=alt.Scale(zero=False))
+  y2_tooltips = [alt.Tooltip('date:T', title='date'),
+                 alt.Tooltip(y2_col + ':Q', title=y2_title, format='.3f')]
+  y2_chart = base.mark_line(color=tableau_colors[1]).encode(y=y2_schema, tooltip=y2_tooltips).interactive()
+  # Overlay the charts
+  twin_axes_chart = alt.layer(y1_chart, y2_chart).resolve_scale(y='independent').interactive()
+  return twin_axes_chart

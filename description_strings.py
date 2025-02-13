@@ -11,6 +11,10 @@ description_ndx = ('**NASDAQ 100**: NASDAQ 100 Index. A market-capitalization-we
                    'the 100 largest non-financial companies listed on NASDAQ.')
 description_ixic = ('**NASDAQ Composite**: A market-capitalization-weighted index of all common '
                     'stocks listed on NASDAQ.')
+description_usgdp = ('**US GDP real**: A comprehensive measure of U.S. economic activity. GDP measures '
+                     'the value of the final goods and services produced in the United States (without double '
+                     'counting the intermediate goods and services used up to produce them). Changes '
+                     'in GDP are the most popular indicator of the nation\'s overall economic health.')
 
 outro_string = """
     © 2024-2025, P. Meletis. All rights reserved.
@@ -18,7 +22,7 @@ outro_string = """
     This website is for educational purposes only. It is not intended as financial 
     or investment advice.
 
-    Data is sourced from Yahoo Finance, NASDAQ, and other public sources.
+    Data is sourced from Yahoo Finance, NASDAQ, bea.gov, and other public sources.
     You can find the source code for this website 
     [here](https://github.com/pmeletis/financial-assets-insights).
     """

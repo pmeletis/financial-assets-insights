@@ -14,12 +14,14 @@ st.set_page_config(
 )
 
 pages = {
-    "Stock markets": [
-        st.Page("index_ratios.py", title="Index ratios"),
+    "Index ratios": [
+        st.Page("usa_index_ratios.py", title="US markets & economy"),
+        st.Page("country_ratios.py", title="Country markets"),
+        st.Page("index_ratios_maths.py", title="The math"),
     ],
-    "Overall": [
-        st.Page("overall.py", title="Overall"),
-    ],
+    # "Overall": [
+    #     st.Page("overall.py", title="Overall"),
+    # ],
 }
 
 pg = st.navigation(pages)
