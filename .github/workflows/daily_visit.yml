@@ -1,0 +1,17 @@
+name: Daily Webpage Visit
+# This workflow visits the Streamlit app webpage daily to keep it alive.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # Runs once per day at 03:00 UTC
+  workflow_dispatch:     # Allows manual run
+
+jobs:
+  visit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Visit webpage
+        run: |
+          echo "Visiting webpage..."
+          curl -I https://financial-assets-insights.streamlit.app
