@@ -8,4 +8,6 @@ dependencies:
   - yfinance
   - pip
   - vegafusion
+
   - ipykernel
+  - playwright
