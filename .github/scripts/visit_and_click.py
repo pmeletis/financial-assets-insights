@@ -20,6 +20,9 @@ def main():
         except TimeoutError:
             print("Button not found, continuing without clicking.")
 
+        # visit the page again to ensure it's up
+        page.goto(URL, wait_until="networkidle", timeout=60000)
+
         browser.close()
 
 if __name__ == "__main__":
