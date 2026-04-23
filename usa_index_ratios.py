@@ -1,7 +1,6 @@
 import time
 
 import altair as alt
-import pandas as pd
 import streamlit as st
 
 from description_strings import (description_ftw5000, description_ixic,
@@ -22,7 +21,7 @@ st.write(
     'helps *adjust for the impact of currency fluctuations*, providing a clearer comparison '
     'of their underlying market trends.')
 
-ratios_df = get_ratios_df(symbol_source='20241203', subsample_step=4, append_date_column=True)
+ratios_df = get_ratios_df(symbol_source='20260423', subsample_step=4, append_date_column=True)
 
 # Chart 1 #########################################################################################
 st.header('Economic indicators - Market cap')

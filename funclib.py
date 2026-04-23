@@ -32,7 +32,7 @@ def download_and_save_data(dirpath: Path, tts=3):
   dirpath = dirpath / current_date_str
   dirpath.mkdir()
   for symbol, prefix, _, _, _ in INFO.itertuples(index=False):
-    df = yf.download(symbol, start='1927-01-01')
+    df = yf.download(symbol, start='1927-01-01', multi_level_index=False)
     df.to_csv(dirpath / f'{current_date_str}-{prefix}-daily.csv')
     time.sleep(3)
 
