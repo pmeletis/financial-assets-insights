@@ -18,12 +18,12 @@ URL: TypeAlias = str
 URL_ASSETS = 'https://raw.githubusercontent.com/pmeletis/fai-dumps/main/'
 
 INFO = pd.DataFrame({
-    'yf_symbol': ['^GSPC', '^NDX', '^N100', '^RUT', '^IXIC', '^NYA', 'BTC-USD', 'ETH-USD'],
-    'filename_prefix': ['sp500', 'nasdaq100', 'euronext100', 'russel2000', 'nasdaq_comp', 'nyse_comp', 'btcusd', 'ethusd'],
-    'button_name': ['S&P 500', 'NASDAQ 100', 'EURONEXT 100', 'RUSSEL 2000', 'NASDAQ Composite', 'NYSE Composite', 'BTCUSD', 'ETHUSD'],
+    'yf_symbol': ['^SPX', '^NDX', '^N100', '^RUT', '^IXIC', '^NYA', '^FTW5000', '^SPXEW', 'BTC-USD', 'ETH-USD', 'USGDP'],
+    'filename_prefix': ['sp500', 'nasdaq100', 'euronext100', 'russel2000', 'nasdaq_comp', 'nyse_comp', 'wilshire5000', 'sp500ew', 'btcusd', 'ethusd', 'usgdp'],
+    'button_name': ['S&P 500', 'NASDAQ 100', 'EURONEXT 100', 'RUSSEL 2000', 'NASDAQ Composite', 'NYSE Composite', 'Wilshire 5000', 'S&P 500 Equal Weighted', 'BTCUSD', 'ETHUSD', 'USGDP'],
     # 'legend_name': [],
-    'button_default': [True, True, True, True, False, False, True, True],
-    'button_selection': [True, True, True, True, False, False, True, True],
+    'button_default': [True, True, True, True, False, False, False, False, True, True, False],
+    'button_selection': [True, True, True, True, False, False, False, False, True, True, False],
 })
 
 
@@ -320,10 +320,10 @@ def get_close_data_by_symbol(symbol_name: str, symbol_source: Path | URL) -> pd.
     symbol_source: The source of the data. If a Path is given, it is assumed to exist
       locally. If a date string is given, it is assumed it is online.
   """
-  if symbol_name not in ['^FTW5000', '^NDX', '^SPX', '^SPXEW', '^IXIC', 'USGDP']:
-    raise ValueError('Symbol name not supported.')
+  if symbol_name not in INFO['yf_symbol'].values:
+    raise ValueError(f'Symbol {symbol_name} name not supported.')
 
-  ending = f'{symbol_name.lower()}-yearly' if symbol_name in ['USGDP'] else f'{symbol_name[1:].lower()}-daily'
+  ending = INFO[INFO['yf_symbol'] == symbol_name]['filename_prefix'].iat[0] + ('-yearly' if symbol_name in ['USGDP'] else '-daily')
   if isinstance(symbol_source, Path) and symbol_source.is_dir() and symbol_source.exists():
     df = pd.read_csv(symbol_source / f'{symbol_source.name}-{ending}.csv', parse_dates=['Date'])
   elif isinstance(symbol_source, URL):
@@ -356,7 +356,7 @@ def _reindex_and_compute_ratio(a: pd.Series, b: pd.Series):
 
 
 @st.cache_data
-def get_ratios_df(symbol_source: Path | URL = '20241203',
+def get_ratios_df(symbol_source: Path | URL = '20260424',
                   dropna: False | Literal['all', 'any'] = 'all',
                   long_format: bool = False,
                   subsample_step: int = 1,
